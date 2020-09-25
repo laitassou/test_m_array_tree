@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include <ctime>
 
+#include <vector>
 
 #include "tree.hh"
 #include "tree_util.hh"
@@ -65,8 +66,10 @@ int main(int argc, char **argv)
 
 	constexpr auto N = 26;
 	constexpr auto DEPTH = 10;
+	constexpr auto WIDTH = 26;
+
 	char frChars [N] = {};
-	tree<char> largeTree;
+	tree<char> _tree;
 
 	auto count = 0;
 
@@ -76,41 +79,61 @@ int main(int argc, char **argv)
 		frChars[i] = 'a'+i;
 	}
 
-	for (auto i =0; i < N ; i++)
+	for (auto i =0; i < WIDTH ; i++)
 	{
-		largeTree.insert(largeTree.begin(), frChars[i]);
-
+		_tree.insert(_tree.begin(), frChars[i]);
+		count++;
 	}
 
 	std::srand(0); // use current time as seed for random generator	
-	for(tree<char>::sibling_iterator iRoots = largeTree.begin(); iRoots != largeTree.end(); ++iRoots)
+	auto status = false;
+	typename tree<char>::pre_order_iterator it_depth;
+	auto current_depth = 0;
+	auto count_depth = 0;
+	
+	std::vector<typename tree<char>::iterator> vec;
+
+
+	typename tree<char>::iterator _begin= _tree.begin();
+	typename tree<char>::iterator _end= _tree.end();
+
+	it_depth = _begin;
+
+	for (auto i = 0; i < DEPTH; i++)
 	{
-		auto id = std::rand()/((RAND_MAX + 1u)/N);
-		auto depth = std::rand()/((RAND_MAX + 1u)/DEPTH) + 1;
-		typename tree<char>::iterator levels[DEPTH] = {};
 
-		cout << "depth :" << depth<< endl;
-		auto level = largeTree.append_child(iRoots,frChars[id]);
-		count++;
-		auto i =0;
-
-		while(i < depth)
+		it_depth = _begin;
+		while(it_depth != _end)
 		{
-			id = std::rand()/((RAND_MAX + 1u)/N);
-			 levels[i] = level;
-			for(auto j = 0; j < 9; j++)
+			current_depth = _tree.depth(it_depth);			
+			LOG_INFO(_log) << *it_depth <<", depth :"<<current_depth <<",i:" <<i<<endl;
+
+
+			//if (_tree.number_of_children(it_depth) == 0)
 			{
-				id = std::rand()/((RAND_MAX + 1u)/N);
-		 		level = largeTree.append_child(level,frChars[id]);
+				vec.push_back(it_depth);
+			}
+
+			it_depth++;
+		}
+
+		for(auto it =vec.begin(); it != vec.end(); it++)
+		{
+			auto id = std::rand()/((RAND_MAX + 1u)/N);
+			{
+				auto level = _tree.append_child(*it, frChars[(id) % N]);
 				count++;
 			}	
-			level = levels[i];
-			i++;
-		}
-	}
+		}		
+		vec.empty();
 
+	LOG_INFO(_log) <<  "count_depth:" <<count_depth <<endl;
+	count_depth++;
+	}
+	
 	LOG_INFO(_log) <<"tree with number of elements :"<< count<< endl;
-	print_tree(largeTree, largeTree.begin(), largeTree.end());
+	print_tree(_tree, _tree.begin(), _tree.end());
+	LOG_INFO(_log) <<"tree with number of elements :"<< count<< endl;
 
 	return 0;
 }

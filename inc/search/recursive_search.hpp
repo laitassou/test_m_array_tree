@@ -36,12 +36,10 @@ bool subtree_search(const tree<T>& t, typename tree<T>::iterator iRoot, int n, T
 /*
  * recursive version of search
  */
-template <class T> bool search_word(const tree<T>& t, int n, T a[])
+template <class T> bool search_word_recursive(const tree<T>& t, int n, T a[])
 {
 
 	auto found = false;
-	
-
 	for(typename tree<T>::sibling_iterator iRoots = t.begin(); iRoots != t.end(); ++iRoots)
 	{
 		if(*iRoots == a[0])
@@ -99,6 +97,68 @@ bool subtree_search(const tree<T>& t, typename tree<T>::iterator iRoot, int n, T
 				}
 			}
 		}
+	}
+	return status;
+
+}
+
+/*
+* non recursive search, search using depth first iterator  
+*/
+template <class T> bool search_word_depth(const tree<T>& t, int word_length, T word[])
+{
+	auto status {false};
+
+	typename tree<T>::sibling_iterator current_root, root = t.begin(); 
+
+	auto current_depth = 0;
+
+	while (root != t.end())
+	{
+		if( status == true)
+		{
+			break;
+		}
+
+		current_depth = t.depth(root);
+		// go no next element in same level [sibling iterator] if current one doesn't match
+		if(*root != word[current_depth]) 
+		{
+			root++;
+			continue;
+		}
+
+		// if it matchs then go in next depth
+		current_root = t.begin(root);
+		while(current_root != t.end(root)) 
+		{
+			current_depth = t.depth(current_root);
+			if(*current_root !=  word[current_depth] )
+			{
+				current_root++;
+				continue;
+			}
+
+			LOG_DEBUG(_log)  <<"*current_root" <<*current_root << ",current_depth" << current_depth << endl;
+
+			// reached end of branch
+			if(t.number_of_children(current_root) == 0  && (current_depth+1) ==word_length )
+			{
+				status = true;
+				break;
+			}
+			current_root = t.begin(current_root);			
+		}
+		root++;
+	}
+
+	if(status == true)
+	{
+		LOG_INFO(_log)  <<"word " <<word <<" found" << endl;
+	}
+	else
+	{
+		LOG_INFO(_log)  <<"word " <<word <<" not found" << endl;
 	}
 	return status;
 
@@ -174,10 +234,12 @@ void insert_word(tree<T>& t, int n, T input_word[])
 		//					f
 
 		// last char that matchs at end, so add remaining to previous level
+		auto i = 0;
 		if(t.number_of_children(matchRoot) == 0)
 		{
 			auto level = t.parent(matchRoot);
 			LOG_DEBUG(_log) <<"match "<<*matchRoot <<"," << *level << "," <<index <<endl;
+			i = index -1 ;
 			for(auto i = index-1 ; i < n; i++)
 			{
 				level = t.append_child(level, input_word[i]);
@@ -186,7 +248,7 @@ void insert_word(tree<T>& t, int n, T input_word[])
 		}
 		else  // last char that matchs before , so don't duplicate this char
 		{
-			auto level = (matchRoot);
+			auto level = (matchRoot);			
 			LOG_DEBUG(_log) <<"match "<<*matchRoot <<"," << *level << "," <<index <<endl;
 			for(auto i = index ; i < n; i++)
 			{
@@ -205,8 +267,6 @@ void insert_word(tree<T>& t, int n, T input_word[])
 	}
 
 }
-
-
 
 /*
 * this means search all words that match at least n-nb_allowed_substitute characters
@@ -235,7 +295,6 @@ bool tree_search_substitute(const tree<T>& t, int n, T target_word[], int nb_all
 	}
 
 	it_depth = t.begin();
-
 	while(it_depth != t.end())
 	{
 			current_depth = t.depth(it_depth);
@@ -280,7 +339,6 @@ bool tree_search_substitute(const tree<T>& t, int n, T target_word[], int nb_all
 					}
 					//TO DO copy _stack elements to tfound
 				}
-
 				end_reached = true;
 				last_depth = t.depth(it_depth);
 				index = 0;
@@ -288,29 +346,71 @@ bool tree_search_substitute(const tree<T>& t, int n, T target_word[], int nb_all
 			it_depth++;
 			index++;
 	}
-
 	return status;
+}
+
+
+
+template<class T> class Matrix {
+private:
+    unsigned _row;
+    unsigned _col;
+    T * _data;
+
+public:
+    Matrix(unsigned row, unsigned col) :_row(row),_col(col){
+
+		unsigned size = _row * _col;
+		_data = new T[size]();
+	};
+
+	~Matrix()
+	{
+		delete [] _data;
+		cout << "dlter" <<endl;
+	}
+
+    void printMatrix()
+	{
+		for(auto i =0; i <_row; i++)
+		{
+			cout << "[";
+			for(auto  j = 0; j < _col; j++)
+			{
+				cout << _data[i*_col+j] <<" ";
+			}
+			cout << "]"<< endl;
+		}
+	}
+};
+
+
+template<class T> bool estimate_cost(std::vector<T> &vec,int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add)
+{
+	auto allowed_search_length = word_length + nb_allowed_add;
+	Matrix<int> _matrix(vec.size(),word_length);
+	_matrix.printMatrix();
+	return false;
 }
 
 /*
 * Version to handle add, erasure of chars  and errors
-* we allow erasure of n chars and add of m chars
-* What this means: if we need to mach a word target_word that has n chars 
-* from these n chars we have nb_allowed_substitute erros => precondition nb_allowed_substitute < n
-* in addition we handle nb_allowerd_erasure => precondition  min (found_word_length) = word_length - nb_allowerd_erasure
-* in addition we handle nb_allowed_add => precontion max (found_word_length) = word_length + nb_allowed_add
-* To give idea,we need search words that could match in some chars in the range of lengths: [word_length -  nb_allowerd_erasure , word_length + nb_allowed_add]
-* example in dic we have word addiction,  audition, etc and we have word = dcvn
+* It handles erasure of n chars and add of m chars
 */
 template<class T>
-bool tree_search_add_erase(const tree<T>& t, int word_length, T word[],int nb_allowed_substitute, int nb_allowerd_erasure, int nb_allowed_add, tree<T>& tfound)
+bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add, tree<T>& tfound)
 {
 	auto status = false;
-	typename tree<T>::pre_order_iterator it_depth;
-	auto current_depth = 0, last_depth = 0;
+	auto done = false;
 
+	typename tree<T>::pre_order_iterator it_depth;
+	typename tree<T>::iterator parent = nullptr;
+
+	auto current_depth = 0, last_depth = 0;
 	auto nb_erased = 0, nb_added = 0, nb_matched =0;
+	auto allowed_search_length = word_length + nb_allowed_add;
 	
+	std::vector<char> browsed_chars;
 
 	// preconditions
 	if(nb_allowed_substitute >= word_length)
@@ -319,42 +419,78 @@ bool tree_search_add_erase(const tree<T>& t, int word_length, T word[],int nb_al
 		return status;
 	}
 
-	if(nb_allowerd_erasure >= word_length)
+	if(nb_allowed_erasure >= word_length)
 	{
 		LOG_WARN(_log) << "Number of allowed erasure:"<< nb_allowed_substitute << " is higher than word_length :"<<word_length<<endl;
 		return status;
 	}
 
-	if(nb_allowed_add >= word_length)
+	it_depth = ref_tree.begin();
+
+		typename tree<T>::sibling_iterator _siblings =ref_tree.begin();
+		typename tree<T>::iterator next_to_parent =ref_tree.begin();
+
+	while(it_depth != ref_tree.end())
 	{
-		LOG_WARN(_log) << "Number of allowed addition :"<< nb_allowed_add << " is higher than word_length :"<<word_length<<endl;
-		return status;
-	}
 
-	it_depth = t.begin();
-
-	while(it_depth != t.end())
-	{
-		current_depth = t.depth(it_depth);			
-		LOG_INFO(_log) << *it_depth <<", depth :"<<t.depth(it_depth) <<endl;
-
-		if(*it_depth == word[t.depth(it_depth)])
+		if(ref_tree.depth(it_depth) == 0)
 		{
-			nb_matched++;	
-		}else
+			parent = nullptr;
+			next_to_parent = nullptr;
+		}
+		else
 		{
-			nb_erased++;
+			parent = ref_tree.parent(it_depth);
+			next_to_parent = parent++;
+		}
+		if(done == false)
+		{
+			if( parent == nullptr)
+			{
+				_siblings = ++(ref_tree.begin());
+			}
+			else
+			{
+				_siblings = ++(ref_tree.begin(parent));
+				LOG_INFO(_log) << ", _siblings :"<< *_siblings  <<endl;
+
+			}
 		}
 
-		if(t.number_of_children(it_depth) == 0)
+		current_depth = ref_tree.depth(it_depth);			
+		LOG_INFO(_log) << *it_depth <<", depth :"<<ref_tree.depth(it_depth) <<endl;
+		browsed_chars.push_back(*it_depth);
+
+		if(ref_tree.number_of_children(it_depth) == 0  && ref_tree.depth(it_depth) <= allowed_search_length-1)
 		{
-
-			LOG_INFO(_log) << "end of branch" <<  "index:" <<endl;
-
+			LOG_INFO(_log) << "end of branch and branch depth:" <<ref_tree.depth(it_depth)<<endl;
+			LOG_INFO(_log) << "Analysis:" <<endl;	
+			//estimate_cost(browsed_chars, word_length, word, nb_allowed_substitute, nb_allowed_erasure, nb_allowed_add);
 		}
+		else if(ref_tree.depth(it_depth) >= allowed_search_length-1)
+		{
+			LOG_INFO(_log) << "parent: "<<*(ref_tree.parent(it_depth)) <<  "it_depth:"<< *it_depth<<endl;
+			done = true;
+
+			_siblings++;
+			if(_siblings != ref_tree.end(parent))
+			{
+				it_depth = _siblings;
+				LOG_INFO(_log) << "not siblings  " <<"it_depth:"<< *it_depth<<endl;
+				continue;
+			}
+			else
+			{
+				it_depth = next_to_parent;
+				done = false;
+				LOG_INFO(_log) << "end of siblings  " <<"it_depth:"<< *it_depth<<"depth:" <<ref_tree.depth(it_depth)<<endl;
+				continue;
+			}
+		}
+
+		//_siblings = ref_tree.begin(parent);
 		it_depth++;
 	}
-
 
 }
 

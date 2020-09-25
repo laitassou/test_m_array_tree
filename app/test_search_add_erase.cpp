@@ -59,49 +59,85 @@ int main(int argc, char **argv)
 
 
 	constexpr auto N = 26;
+	constexpr auto DEPTH = 3;
+	constexpr auto WIDTH = 3;
+
 	char frChars [N] = {};
-	tree<char> largeTree;
+	tree<char> _tree;
 	tree<char> result;
 
-	// test chars
+	auto count = 0;
+
+	// test chars with some random chars
 	for (auto i =0; i < N ; i++)
 	{
 		frChars[i] = 'a'+i;
 	}
 
-	for (auto i =0; i < 3 ; i++)
+	for (auto i =0; i < WIDTH ; i++)
 	{
-		largeTree.insert(largeTree.begin(), frChars[i]);
+		_tree.insert(_tree.begin(), frChars[i]);
+		count++;
 	}
 
-
-	std::srand(0); // use current time as seed for random generator
+	std::srand(0); // use current time as seed for random generator	
+	auto status = false;
+	typename tree<char>::pre_order_iterator it_depth;
+	auto current_depth = 0;
+	auto count_depth = 0;
 	
-	for(tree<char>::sibling_iterator iRoots = largeTree.begin(); iRoots != largeTree.end(); ++iRoots)
+	std::vector<typename tree<char>::iterator> vec;
+
+
+	typename tree<char>::iterator _begin= _tree.begin();
+	typename tree<char>::iterator _end= _tree.end();
+
+	it_depth = _begin;
+
+	for (auto i = 0; i < DEPTH; i++)
 	{
 
-		auto random_variable = std::rand();
-		auto id = std::rand()/((RAND_MAX + 1u)/N);
-
-		for(auto i =1; i <5;i++)
+		it_depth = _begin;
+		while(it_depth != _end)
 		{
-			auto level = largeTree.append_child(iRoots, frChars[(id+i) % N]);
+			current_depth = _tree.depth(it_depth);			
+			LOG_INFO(_log) << *it_depth <<", depth :"<<current_depth <<",i:" <<i<<endl;
 
-			for(auto j =1; j <5; j++)
+
+			//if (_tree.number_of_children(it_depth) == 0)
 			{
-				level=largeTree.append_child(level, frChars[(id+j) % N]);
+				vec.push_back(it_depth);
 			}
+
+			it_depth++;
 		}
 
+		for(auto it =vec.begin(); it != vec.end(); it++)
+		{
+			auto id = std::rand()/((RAND_MAX + 1u)/N);
+			{
+				auto level = _tree.append_child(*it, frChars[(id) % N]);
+				count++;
+			}	
+		}		
+		vec.empty();
 
+	LOG_INFO(_log) <<  "count:" <<count <<endl;
 	}
-	cout <<" 1 level "<<endl;
-	//print_tree_bracketed(largeTree);
-	print_tree(largeTree, largeTree.begin(), largeTree.end());
 
+
+	LOG_INFO(_log) <<"word  bxv "<<endl;
+	//print_tree_bracketed(largeTree);
+	print_tree(_tree, _tree.begin(), _tree.end());
+/*
 
 	char input_3[] = "bxv";
-	tree_search_add_erase(largeTree,3,input_3,1,1,1,result);
+	tree_search_add_erase(_tree,3,input_3,1,1,1,result);
+
+	LOG_INFO(_log) <<endl << " word xv "<<endl;
+*/
+	char input_2[] = "xv";
+	tree_search_add_erase(_tree,2,input_2,1,1,1,result);
 
 	return 0;
 }

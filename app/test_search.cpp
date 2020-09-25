@@ -60,6 +60,7 @@ int main(int argc, char **argv)
 	constexpr auto N = 26;
 	char frChars [N] = {};
 	tree<char> largeTree;
+	auto status { false};
 
 	// test chars with some random chars
 	for (auto i =0; i < N ; i++)
@@ -67,7 +68,7 @@ int main(int argc, char **argv)
 		frChars[i] = 'a'+i;
 	}
 
-	for (auto i =0; i < N ; i++)
+	for (auto i =0; i < 6 ; i++)
 	{
 		largeTree.insert(largeTree.begin(), frChars[i]);
 	}
@@ -90,29 +91,36 @@ int main(int argc, char **argv)
 	print_tree(largeTree, largeTree.begin(), largeTree.end());
 
 	char input_2[] = "ac";
-	auto status = search_word(largeTree,2,input_2);
+	status = search_word_recursive(largeTree,2,input_2);
 	cout << "found " << input_2 << ":" << status << endl;
 
 
 
 	char input_2_f[] = "sx";
-	status = search_word(largeTree,2,input_2_f);
+	status = search_word_recursive(largeTree,2,input_2_f);
 	LOG_INFO(_log) << "found " << input_2_f << ":" << status << endl;
 
 	char input_3[] = "sxg";
-	status = search_word(largeTree,3,input_3);
+	status = search_word_recursive(largeTree,3,input_3);
 	LOG_INFO(_log) << "found " << input_3 << ":" << status << endl;
 
 	char input_not_found[] = "sxh";
-	status = search_word(largeTree,3,input_not_found);
+	status = search_word_recursive(largeTree,3,input_not_found);
 	LOG_INFO(_log) << "found " << input_not_found << ":" << status << endl;
 
 
 
 	char input_4[] = "sxgv";
-	status = search_word(largeTree,4,input_4);
-	LOG_INFO(_log) << "found " << input_4 << ":" << status << endl;
 
+	status = search_word_recursive(largeTree,4,input_4);
+	LOG_INFO(_log) << "found " << input_4 << ":" << status << endl;
+	char input_5[] = "box";
+
+	status = search_word_depth(largeTree,3,input_5);
+	
+	char input_6[] = "boxv";
+
+	status = search_word_depth(largeTree,4,input_6);
 	return 0;
 }
 

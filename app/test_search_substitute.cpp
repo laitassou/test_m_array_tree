@@ -79,21 +79,15 @@ int main(int argc, char **argv)
 	
 	for(tree<char>::sibling_iterator iRoots = largeTree.begin(); iRoots != largeTree.end(); ++iRoots)
 	{
-
-		auto random_variable = std::rand();
 		auto id = std::rand()/((RAND_MAX + 1u)/N);
-
 		for(auto i =1; i <3;i++)
 		{
 			auto level = largeTree.append_child(iRoots, frChars[(id+i) % N]);
-
 			for(auto j =1; j <2; j++)
 			{
 				largeTree.append_child(level, frChars[(id+j) % N]);
 			}
 		}
-
-
 	}
 	LOG_DEBUG(_log) <<" 1 level "<<endl;
 	//print_tree_bracketed(largeTree);
