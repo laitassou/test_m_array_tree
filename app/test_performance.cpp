@@ -29,6 +29,8 @@
 
 #include <vector>
 
+#include <chrono>
+
 #include "tree.hh"
 #include "tree_util.hh"
 #include "recursive_search.hpp"
@@ -69,7 +71,7 @@ int main(int argc, char **argv)
 	constexpr auto WIDTH = 26;
 
 	char frChars [N] = {};
-	tree<char> _tree;
+	tree<char> _tree,result;
 
 	auto count = 0;
 
@@ -135,6 +137,13 @@ int main(int argc, char **argv)
 	print_tree(_tree, _tree.begin(), _tree.end());
 	LOG_INFO(_log) <<"tree with number of elements :"<< count<< endl;
 
+	char input[] = "uvabertn";
+
+	auto start = chrono::steady_clock::now();
+	tree_search_add_erase(_tree,8,input,2,1,1,result);
+	auto end = chrono::steady_clock::now();
+
+	cout <<chrono::duration_cast<chrono::microseconds> (end - start).count() <<endl;	
 	return 0;
 }
 

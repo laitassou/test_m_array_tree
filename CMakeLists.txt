@@ -11,7 +11,7 @@ set (CMAKE_CXX_STANDARD 14)
 include_directories(./)
 set (INC inc/tree-3.7/ inc/logger inc/search)
 
-add_definitions(-DCPPLOG_FILTER_LEVEL=LL_DEBUG)   
+add_definitions(-DCPPLOG_FILTER_LEVEL=LL_INFO)   
 
 #search
 set(SOURCES app/test_search.cpp)

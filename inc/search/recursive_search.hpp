@@ -14,9 +14,7 @@
 
 #include <vector>
 
-
 #include "cpplog.hpp"
-
 
 using namespace cpplog;
 using namespace std;
@@ -28,6 +26,9 @@ namespace recursive_search_insert {
 
 
 StdErrLogger _log;
+
+
+#define MIN(x,y) (x < y) ? x:y;
 		
 // decl
 template<class T>
@@ -332,7 +333,7 @@ bool tree_search_substitute(const tree<T>& t, int n, T target_word[], int nb_all
 					LOG_INFO(_log) << "matched "<<endl;
 					status = true;
 					// print elements in reverse order <stack> => change to deque
-					// avoid copy by uisng other container
+					// avoid copy by using other container
 					for (std::stack<T> dump = _stack; !dump.empty(); dump.pop())
 					{
         				LOG_INFO(_log) << dump.top() << endl;
@@ -367,7 +368,7 @@ public:
 	~Matrix()
 	{
 		delete [] _data;
-		cout << "dlter" <<endl;
+		cout << "delter" <<endl;
 	}
 
     void printMatrix()
@@ -382,20 +383,376 @@ public:
 			cout << "]"<< endl;
 		}
 	}
+
+	unsigned col() const
+	{
+		 return _col;
+	}
+
+	unsigned row() const
+	{
+		 return _row;
+	}
+
+	void set_position(int i, int j, T val)
+	{
+		_data[i*_col+j] = val;
+	}
+
+
+		// search maximum semi diagonal algo
+	std::vector<unsigned> candidates_substitute_erasure()
+	{
+		std::vector<unsigned> vec;
+
+		for(auto  j = 0; j < _col; j++)
+		{
+			auto i =0;
+			for(; i <_row; i++)
+			{
+				if( _data[i*_col+j] == 1)
+				{
+					break;
+				}				
+			}
+
+			if(i ==_row )
+			{
+				LOG_INFO(_log) << "candidates_substitute_erasure j: "<<j <<" "<< _col <<  endl;
+				vec.push_back(j);
+			}
+		}
+
+		return vec;
+	}
+
+
+	// search maximum semi diagonal algo
+	// to to, search among the same paths the longest diagonal one
+	// to maximize substitutions
+	std::vector<unsigned> candidates_save()
+	{
+		std::vector<unsigned> vec;
+
+		for(auto  j = 0; j < _col; j++)
+		{
+			auto i =0;
+			for(; i <_row; i++)
+			{
+				if( _data[i*_col+j] == 1)
+				{
+					LOG_INFO(_log) << "candidates_substitute_erasure j: "<<j <<" "<< _col <<  endl;
+
+					vec.push_back(i);
+					break;
+				}				
+			}
+		}
+
+		return vec;
+	}
+
+	// search maximum semi diagonal algo
+	std::vector<std::array<unsigned,2>> by_lines()
+	{
+		std::vector<std::array<unsigned,2>> vec;
+		std::array<unsigned,2> point;
+
+		int min_i = -1;
+		int min_j = -1;
+	
+		// line
+		for(auto i = 0; i <_row; i++)
+		{
+			for(auto  j = 0; j < _col; j++)
+			{
+				if(i > min_i && j > min_j)
+				{
+					if( _data[i*_col+j] == 1)
+					{
+						point[0] = i;
+						point[1] = j;
+						min_i = i;
+						min_j = j;
+						vec.push_back(point);
+
+						break;
+					}
+				}
+			}
+			
+		}
+
+		LOG_INFO(_log) <<"path vec.size() " <<vec.size() << endl;
+
+		// column
+
+		return vec;
+	}
+
+	// search maximum semi diagonal algo
+	std::vector<std::array<unsigned,2>> by_columns()
+	{
+		std::vector<std::array<unsigned,2>> vec;
+		std::array<unsigned,2> point;
+
+		int min_i = -1;
+		int min_j = -1;
+	
+		// line
+		for(auto j =0; j <_col; j++)
+		{
+			for(auto  i = 0; i < _row; i++)
+			{
+				if(i > min_i && j > min_j)
+				{
+					if( _data[i*_row+j] == 1)
+					{
+						point[0] = i;
+						point[1] = j;
+						min_i = i;
+						min_j = j;
+						vec.push_back(point);
+
+						break;
+					}
+				}
+			}
+		}
+
+		LOG_INFO(_log) <<"path vec.size() " <<vec.size() << endl;
+
+		return vec;
+	}
+
+	// TO DO
+	// search maximum semi diagonal algo with zigzag
+	std::vector<std::array<unsigned,2>> zig_zag()
+	{
+		std::vector<std::array<unsigned,2>> vec;
+		std::array<unsigned,2> point;
+	
+		auto preferred_direction = max(_row, _col);
+
+		for(auto i =0; i <_row+_col-1; i++)
+		{
+			if(_row >= _col )
+			{			
+
+			}			
+		}
+
+		return vec;
+	}
+
+
+	// search maximum semi diagonal algo
+	std::vector<std::array<unsigned,2>> small_squares()
+	{
+		std::vector<std::array<unsigned,2>> vec;
+		std::array<unsigned,2> point;
+	
+		for(auto i =0; i <_row; i++)
+		{
+			for(auto  j = 0; j < _col; j++)
+			{
+				if( _data[i*_col+j] == 1)
+				{
+					point[0] = i;
+					point[1] = j;
+
+					vec.push_back(point);
+				}
+			}
+		}
+
+		return vec;
+	}
+
 };
 
 
-template<class T> bool estimate_cost(std::vector<T> &vec,int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add)
+template<class T> bool estimate_cost(std::stack<typename tree<T>::iterator > _stack,int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add)
 {
+	auto size  =_stack.size();
+	T target_word[size] = {};
 	auto allowed_search_length = word_length + nb_allowed_add;
-	Matrix<int> _matrix(vec.size(),word_length);
+	Matrix<int> _matrix(_stack.size(),word_length);
 	_matrix.printMatrix();
+
+	// replace with deque, to avoid need to reverse elements 
+	std::vector<typename tree<T>::iterator > dump ;
+	while(!_stack.empty())
+	{
+		LOG_DEBUG(_log) <<"stack dump " << *(_stack.top())<<endl;
+		dump.push_back(_stack.top());
+		_stack.pop();
+	}
+	std::reverse(dump.begin(), dump.end());
+
+	for(auto i = 0; i <_matrix.row() ; i++)
+	{
+		T val = *(dump.at(i));
+		LOG_INFO(_log) <<"val " <<val << endl;
+		for(auto j = 0 ; j < _matrix.col(); j++)
+		{
+			if(val == word[j])
+				_matrix.set_position(i,j,1);
+		}
+		//dump.pop();
+	}
+	_matrix.printMatrix();
+
+
+	// to do best algorithm to match words
+	// find maximum "suite" with strict progressive values {1} in sparse matrix
+	//the goal is to transfrom this matrix to square one as {identity matrix + some sparse}
+	// by respecting the constraint of allowed substitution erasure, add
+	// remark : subtition = erasure + add in same position so priority will be given 
+	// to substitution
+	// example of matrix 
+	//		x  t  f  z
+	//	e   0  0  0  0
+	//	x   1  0  0  0
+	//	v   0  0  0  0
+	//  n   0  0  0  0
+	//  f   0  0  1  0
+	//	d   0  0  0  0
+	//	f   0  0  1  0
+
+	std::vector<std::array<unsigned,2>> candidates_match1 = _matrix.by_lines();
+	LOG_INFO(_log) << " match by lines" << endl;
+	for (auto& it :candidates_match1)
+	{
+		LOG_DEBUG(_log) << (it)[0]  << it[1]<< endl;
+	}
+	LOG_INFO(_log) << "match by columns" << endl;
+
+	std::vector<std::array<unsigned,2>> candidates_match2 = _matrix.by_columns();
+	for (auto & it : candidates_match2)
+	{
+		LOG_DEBUG(_log) << (it)[0]  << it[1]<< endl;
+	}
+
+	std::vector<std::array<unsigned,2>> candidates_match = candidates_match1;
+	//  match horizontal vs vertical
+	if( candidates_match2.size() > candidates_match1.size())
+	{
+		candidates_match = candidates_match2;
+	}
+
+	auto count_substitute = 0;
+	auto count_erasure = 0;
+	auto count_add = 0;
+
+	std::array<unsigned,2> init_point {0,0};
+	if(candidates_match.size() == 0)
+	{
+		auto min_size = size < word_length ? size:word_length;
+		auto possible_erasure = min_size < nb_allowed_erasure ? min_size: nb_allowed_erasure;
+		count_substitute += possible_erasure; 
+		if(word_length >= size)
+			count_erasure += word_length-size ;	
+		else
+			count_add += size - word_length;
+
+	}
+	else
+	{
+			
+		for(auto  j = 0; j < candidates_match.size(); j++)
+		{
+			std::array<unsigned,2> point = candidates_match.at(j);
+			std::array<unsigned,2> delta_point = {point[0] - init_point[0], point[1] - init_point[1]};
+			init_point = point;
+
+			auto min = delta_point[0] < delta_point[1] ? delta_point[0]:delta_point[1];
+			auto row_direction = min == delta_point[0];
+			auto col_direction = min == delta_point[1];
+
+			auto max = delta_point[0] > delta_point[1] ? delta_point[0]:delta_point[1];
+
+			LOG_DEBUG(_log) <<"j:"<< j << "min:" <<min << "max: " << max << endl;
+
+			// TO DO need to handle budget allowed budget here
+			if(max == min)
+			{
+				if(j==0)
+					count_substitute += min;
+				else
+					count_substitute += min-1;
+
+			}
+			else
+			{
+				if(col_direction)
+				{
+						if(j==0)
+							count_substitute += min;
+						else
+							count_substitute += min-1;
+					count_add += max - min;
+				}
+				else if(row_direction)
+				{
+						if(j==0)
+							count_substitute += min;
+						else
+							count_substitute += min-1;
+					count_erasure += max - min;			
+				}
+			}
+			// some columns or lines are not processed after last match point
+			// in that case add firt possible substitutions
+			if (j == candidates_match.size() -1)
+			{
+				auto last_lines = size -1 -point[0];
+				auto last_columns = word_length -1 - point[1];
+
+				auto substitute_end = MIN(last_lines,last_columns);//last_lines < last_columns ? last_lines:last_columns;
+		
+				auto cnt = 0; // remaining possible substitution
+				if(count_substitute < nb_allowed_substitute)
+				{
+					cnt= nb_allowed_substitute - count_substitute; 
+				}
+				auto substitute_add_end = MIN(substitute_end,cnt); //substitute_end < cnt ? substitute_end:cnt;
+
+				count_substitute += substitute_add_end;
+				count_add += size -1 -point[0] - substitute_add_end; 
+				count_erasure += word_length -1 -point[1]  -substitute_add_end; 
+
+			}
+
+		}
+	}
+
+	// TO DO 
+	// store all matches and return best one by min cost
+	// cost == count_substitute + count_add + count_erasure
+	LOG_INFO(_log) <<"subsitute:"<<count_substitute <<"add:"<< count_add <<"erasure:"<< count_erasure  <<endl;	
+	if ((count_substitute <= nb_allowed_substitute)  &&
+		(count_add <= nb_allowed_add) &&
+		(count_erasure <= nb_allowed_erasure) )
+	{
+		LOG_INFO(_log) << "possible match:" << endl;
+
+		for (auto& it :dump)
+		{
+			LOG_INFO(_log) << *it<< endl;
+		}
+	}
+	else
+	{
+		LOG_INFO(_log) << "match not possible" << endl;	
+	}
+
+
 	return false;
 }
 
 /*
-* Version to handle add, erasure of chars  and errors
-* It handles erasure of n chars and add of m chars
+* Version to handle add, erasure of chars  
 */
 template<class T>
 bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add, tree<T>& tfound)
@@ -403,94 +760,127 @@ bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],in
 	auto status = false;
 	auto done = false;
 
-	typename tree<T>::pre_order_iterator it_depth;
+	typename tree<T>::pre_order_iterator it_depth,last_it_depth;
 	typename tree<T>::iterator parent = nullptr;
 
 	auto current_depth = 0, last_depth = 0;
 	auto nb_erased = 0, nb_added = 0, nb_matched =0;
-	auto allowed_search_length = word_length + nb_allowed_add;
+	auto allowed_search_length = word_length + nb_allowed_add + nb_allowed_erasure;
 	
-	std::vector<char> browsed_chars;
+	//std::vector<char> browsed_chars;
+	std::stack<typename tree<T>::iterator > _visited_nodes;
 
 	// preconditions
-	if(nb_allowed_substitute >= word_length)
+	if(nb_allowed_substitute+nb_allowed_erasure>= word_length)
 	{
 		LOG_WARN(_log) << "Number of allowed substitute:"<< nb_allowed_substitute << " is higher than word_length :"<<word_length <<endl;
 		return status;
 	}
 
-	if(nb_allowed_erasure >= word_length)
-	{
-		LOG_WARN(_log) << "Number of allowed erasure:"<< nb_allowed_substitute << " is higher than word_length :"<<word_length<<endl;
-		return status;
-	}
-
 	it_depth = ref_tree.begin();
 
-		typename tree<T>::sibling_iterator _siblings =ref_tree.begin();
-		typename tree<T>::iterator next_to_parent =ref_tree.begin();
+	typename tree<T>::iterator next_to_parent =ref_tree.begin();
 
 	while(it_depth != ref_tree.end())
 	{
 
-		if(ref_tree.depth(it_depth) == 0)
+		_visited_nodes.push(it_depth);
+
+		current_depth = ref_tree.depth(it_depth);			
+		LOG_DEBUG(_log) << *it_depth <<", depth :"<<ref_tree.depth(it_depth) <<endl;
+
+		// reached end of branch
+		if(ref_tree.number_of_children(it_depth) == 0 )
+		{ 
+			if(ref_tree.depth(it_depth) <= (allowed_search_length-1))
+			{
+			LOG_DEBUG(_log) << "end of branch and branch depth:" <<ref_tree.depth(it_depth)<<endl;
+			LOG_DEBUG(_log) << "Analysis:" <<endl;	
+			estimate_cost(_visited_nodes, word_length, word, nb_allowed_substitute, nb_allowed_erasure, nb_allowed_add);
+			}
+			else
+			{
+				LOG_WARN(_log) << endl << "Never happen" <<endl;	
+			}
+			last_it_depth =it_depth;
+			it_depth++;
+			// empty not needed last elements
+			for(auto  _id = ref_tree.depth(it_depth);_id <= ref_tree.depth(last_it_depth) ; _id++)
+			{
+				_visited_nodes.pop();
+			}
+		}
+		else if(ref_tree.depth(it_depth) >= allowed_search_length-1) // word longer than expected
 		{
-			parent = nullptr;
-			next_to_parent = nullptr;
+			LOG_INFO(_log) << "allowed length reached :" <<ref_tree.depth(it_depth)<<":"<<allowed_search_length-1 << endl;
+
+			typename tree<T>::pre_order_iterator current = _visited_nodes.top();
+			 _visited_nodes.pop();
+
+			if(_visited_nodes.empty())
+			{
+				it_depth = ++current;
+				LOG_INFO(_log) << "visited nodes empty" << endl;
+				continue;
+			}
+			else
+			{
+				typename tree<T>::pre_order_iterator parent = _visited_nodes.top();
+				_visited_nodes.pop();
+
+
+
+				typename tree<T>::sibling_iterator _siblings =current;
+				_siblings++;
+
+				
+				auto found = false;
+
+				while(ref_tree.end(parent) == _siblings && found == false)
+				{
+					if(ref_tree.depth(parent) == 0)
+					{
+						_visited_nodes.pop();
+						typename tree<T>::sibling_iterator next_root = parent++;
+						it_depth = next_root;		
+						break;
+					}
+					current = parent;
+					parent =_visited_nodes.top();
+					_visited_nodes.pop();
+
+					typename tree<T>::sibling_iterator _siblings =current;
+					_siblings++;
+					
+					if(_siblings == ref_tree.end(parent))
+					{
+						LOG_INFO(_log) << "sibling worked" << endl;
+					}
+					else
+					{
+						LOG_INFO(_log) << "sibling:" << *_siblings << endl;
+					}
+					for(typename tree<T>::sibling_iterator it = ref_tree.begin(parent); it!=ref_tree.end(parent); it++)
+					{
+						LOG_INFO(_log) <<"parent:" << *parent <<  ",it:"  << *it<<" " << endl;
+						if(it == _siblings)
+						{	found = true;
+							break;
+						}
+					}
+				}
+				
+				it_depth = _siblings;			
+				_visited_nodes.push(parent);
+				//_visited_nodes.push(it_depth);		
+			}	
 		}
 		else
 		{
-			parent = ref_tree.parent(it_depth);
-			next_to_parent = parent++;
+			it_depth++;
 		}
-		if(done == false)
-		{
-			if( parent == nullptr)
-			{
-				_siblings = ++(ref_tree.begin());
-			}
-			else
-			{
-				_siblings = ++(ref_tree.begin(parent));
-				LOG_INFO(_log) << ", _siblings :"<< *_siblings  <<endl;
-
-			}
-		}
-
-		current_depth = ref_tree.depth(it_depth);			
-		LOG_INFO(_log) << *it_depth <<", depth :"<<ref_tree.depth(it_depth) <<endl;
-		browsed_chars.push_back(*it_depth);
-
-		if(ref_tree.number_of_children(it_depth) == 0  && ref_tree.depth(it_depth) <= allowed_search_length-1)
-		{
-			LOG_INFO(_log) << "end of branch and branch depth:" <<ref_tree.depth(it_depth)<<endl;
-			LOG_INFO(_log) << "Analysis:" <<endl;	
-			//estimate_cost(browsed_chars, word_length, word, nb_allowed_substitute, nb_allowed_erasure, nb_allowed_add);
-		}
-		else if(ref_tree.depth(it_depth) >= allowed_search_length-1)
-		{
-			LOG_INFO(_log) << "parent: "<<*(ref_tree.parent(it_depth)) <<  "it_depth:"<< *it_depth<<endl;
-			done = true;
-
-			_siblings++;
-			if(_siblings != ref_tree.end(parent))
-			{
-				it_depth = _siblings;
-				LOG_INFO(_log) << "not siblings  " <<"it_depth:"<< *it_depth<<endl;
-				continue;
-			}
-			else
-			{
-				it_depth = next_to_parent;
-				done = false;
-				LOG_INFO(_log) << "end of siblings  " <<"it_depth:"<< *it_depth<<"depth:" <<ref_tree.depth(it_depth)<<endl;
-				continue;
-			}
-		}
-
-		//_siblings = ref_tree.begin(parent);
-		it_depth++;
 	}
+	LOG_INFO(_log) << _visited_nodes.size() <<endl;
 
 }
 
