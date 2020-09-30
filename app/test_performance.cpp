@@ -1,23 +1,3 @@
-/* 
-
-	STL-like templated tree class; test program.
-	Copyright (C) 2001-2009  Kasper Peeters <kasper.peeters@aei.mpg.de>
-
-   This program is free software: you can redistribute it and/or
-   modify it under the terms of the GNU General Public License as
-   published by the Free Software Foundation, either version 3 of the
-   License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
-*/
-
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -34,6 +14,14 @@
 #include "tree.hh"
 #include "tree_util.hh"
 #include "recursive_search.hpp"
+
+
+/*
+* test with tree with 150000 elements
+* Current test search 14s, this is reduced to 3s
+* by disabling flooding traces
+*/
+
 
 
 using std::cout;
@@ -68,7 +56,7 @@ int main(int argc, char **argv)
 
 	constexpr auto N = 26;
 	constexpr auto DEPTH = 10;
-	constexpr auto WIDTH = 26;
+	constexpr auto WIDTH = 15;
 
 	char frChars [N] = {};
 	tree<char> _tree,result;
@@ -108,7 +96,7 @@ int main(int argc, char **argv)
 		while(it_depth != _end)
 		{
 			current_depth = _tree.depth(it_depth);			
-			LOG_INFO(_log) << *it_depth <<", depth :"<<current_depth <<",i:" <<i<<endl;
+			//LOG_INFO(_log) << *it_depth <<", depth :"<<current_depth <<",i:" <<i<<endl;
 
 
 			//if (_tree.number_of_children(it_depth) == 0)
@@ -133,17 +121,30 @@ int main(int argc, char **argv)
 	count_depth++;
 	}
 	
-	LOG_INFO(_log) <<"tree with number of elements :"<< count<< endl;
-	print_tree(_tree, _tree.begin(), _tree.end());
-	LOG_INFO(_log) <<"tree with number of elements :"<< count<< endl;
-
 	char input[] = "uvabertn";
 
+	// test performance search with substitute, add , erase for tree with  O(100000) elements
+	// measured search htime is about   4s
 	auto start = chrono::steady_clock::now();
-	tree_search_add_erase(_tree,8,input,2,1,1,result);
+	tree_search_subs_add_erase(_tree,8,input,2,1,1,result);
 	auto end = chrono::steady_clock::now();
 
-	cout <<chrono::duration_cast<chrono::microseconds> (end - start).count() <<endl;	
+	LOG_WARN(_log) <<"tree with number of elements :"<< count<< endl;
+
+	cout <<"duration in us:" <<chrono::duration_cast<chrono::microseconds> (end - start).count() <<endl;
+
+	/*
+	* Test performance search with substitute tree with O(100000) elements
+	* easured search time is about 6ms
+	*/
+
+	start = chrono::steady_clock::now();
+	tree_search_substitute(_tree,8,input,5,result);
+	end = chrono::steady_clock::now();
+
+	LOG_WARN(_log) <<"tree with number of elements :"<< count<< endl;
+
+	cout <<"duration in us:" <<chrono::duration_cast<chrono::microseconds> (end - start).count() <<endl;		
 	return 0;
 }
 

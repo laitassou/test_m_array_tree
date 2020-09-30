@@ -10,9 +10,8 @@
 #include <string>
 
 #include <stack>
-#include <map>
-
 #include <vector>
+#include <deque>
 
 #include "cpplog.hpp"
 
@@ -104,7 +103,7 @@ bool subtree_search(const tree<T>& t, typename tree<T>::iterator iRoot, int n, T
 }
 
 /*
-* non recursive search, search using depth first iterator  
+* non recursive search, search using breadth first [sibling iterator]  
 */
 template <class T> bool search_word_depth(const tree<T>& t, int word_length, T word[])
 {
@@ -173,7 +172,7 @@ void insert_word(tree<T>& t, int n, T input_word[])
 {
 	auto index = 0;
 	auto status = false;
-	auto foundRoot = false;
+	auto found_root = false;
 	auto foundEndPattern = false;
 	typename tree<T>::iterator matchRoot;
 
@@ -181,7 +180,7 @@ void insert_word(tree<T>& t, int n, T input_word[])
 	{
 		if(*iRoots == input_word[0])
 		{
-			foundRoot = true;
+			found_root = true;
 
 			matchRoot = iRoots;
 			index++;
@@ -220,7 +219,7 @@ void insert_word(tree<T>& t, int n, T input_word[])
 			break;
 		}
 	}
-	if(foundRoot == true)
+	if(found_root == true)
 	{
 		//auto level =matchRoot;
 		// apppend to parent why = > avoid hiding existing words
@@ -273,20 +272,19 @@ void insert_word(tree<T>& t, int n, T input_word[])
 * this means search all words that match at least n-nb_allowed_substitute characters
 * precondition : word length must be equal to n
 * one traversal of tree, traversal in depth
-* To do stop when depth of branch > n and go to next branch
+* TO be optimized
 */
 template<class T>
 bool tree_search_substitute(const tree<T>& t, int n, T target_word[], int nb_allowed_substitute, tree<T>& tfound)
 {
 	auto status = false;
 	auto index = 0;
-	std::vector<int> match;
-	std::stack<T> _stack;
+	std::vector<int> _match;
+	std::deque<T> _deque;
 
 	typename tree<T>::pre_order_iterator it_depth;
-	bool end_reached {false};
+	auto end_reached {false};
 	auto current_depth = 0, last_depth = 0;
-
 	auto need_to_match = n - nb_allowed_substitute;
 
 	if(nb_allowed_substitute >= n)
@@ -301,28 +299,30 @@ bool tree_search_substitute(const tree<T>& t, int n, T target_word[], int nb_all
 			current_depth = t.depth(it_depth);
 			if(end_reached)
 			{
-				LOG_DEBUG(_log) << "stack :"<< _stack.size()<< ",match:" << match.size()<< ",cur:"<<current_depth << ",last:"<<last_depth <<endl;
+				LOG_DEBUG(_log) << "stack :"<< _deque.size()<< ",match:" << _match.size()<< ",cur:"<<current_depth << ",last:"<<last_depth <<endl;
 				for(auto u= current_depth; u <= last_depth; u++)
 				{
-					_stack.pop();
-					match.pop_back();
+					_deque.pop_back();
+					_match.pop_back();
 				}
 				end_reached = false;
 			}
 			
 			LOG_DEBUG(_log) << *it_depth <<", depth :"<<t.depth(it_depth) << ",index:" <<index<<endl;
 			if(*it_depth == target_word[t.depth(it_depth)])
-			match.push_back(1);
+			{
+				_match.push_back(1);
+			}
 			else
-			match.push_back(0);
+			{
+				_match.push_back(0);
+			}
 
-
-			_stack.push(*it_depth);
-
+			_deque.push_back(*it_depth);
 			if(t.number_of_children(it_depth) == 0)
 			{
 				auto sum_match = 0;
-				for(auto v =match.begin(); v != match.end(); v++)
+				for(auto v =_match.begin(); v != _match.end(); v++)
 				{
 					sum_match += *v;
 				}
@@ -332,13 +332,13 @@ bool tree_search_substitute(const tree<T>& t, int n, T target_word[], int nb_all
 				{
 					LOG_INFO(_log) << "matched "<<endl;
 					status = true;
-					// print elements in reverse order <stack> => change to deque
-					// avoid copy by using other container
-					for (std::stack<T> dump = _stack; !dump.empty(); dump.pop())
-					{
-        				LOG_INFO(_log) << dump.top() << endl;
+					//auto l = 0;
+					for(auto l= 0; l< _deque.size(); l++) //while(f!_deque.empty())
+					{ 
+						LOG_INFO(_log) <<_deque.at(l)<< "	search:"<<target_word[l] <<endl;
+						//_deque.pop_front();
+						//l++;
 					}
-					//TO DO copy _stack elements to tfound
 				}
 				end_reached = true;
 				last_depth = t.depth(it_depth);
@@ -368,19 +368,19 @@ public:
 	~Matrix()
 	{
 		delete [] _data;
-		cout << "delter" <<endl;
+		LOG_DEBUG(_log)  << "deleter" <<endl;
 	}
 
     void printMatrix()
 	{
 		for(auto i =0; i <_row; i++)
 		{
-			cout << "[";
+			LOG_DEBUG(_log)  << "[";
 			for(auto  j = 0; j < _col; j++)
 			{
-				cout << _data[i*_col+j] <<" ";
+				LOG_DEBUG(_log)  << _data[i*_col+j] <<" ";
 			}
-			cout << "]"<< endl;
+			LOG_DEBUG(_log) << "]"<< endl;
 		}
 	}
 
@@ -541,12 +541,11 @@ public:
 
 			}			
 		}
-
 		return vec;
 	}
 
 
-	// search maximum semi diagonal algo
+	// search maximum semi diagonal algo with squares
 	std::vector<std::array<unsigned,2>> small_squares()
 	{
 		std::vector<std::array<unsigned,2>> vec;
@@ -565,34 +564,35 @@ public:
 				}
 			}
 		}
-
 		return vec;
 	}
-
 };
 
-
-template<class T> bool estimate_cost(std::stack<typename tree<T>::iterator > _stack,int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add)
+/*
+* check if _stack elements could match word by respecting allowed budget 
+*/
+template<class T> bool estimate_cost(std::deque<typename tree<T>::iterator > v_nodes,int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add)
 {
-	auto size  =_stack.size();
+	auto size  =v_nodes.size();
 	T target_word[size] = {};
-	auto allowed_search_length = word_length + nb_allowed_add;
-	Matrix<int> _matrix(_stack.size(),word_length);
-	_matrix.printMatrix();
+	Matrix<int> _matrix(v_nodes.size(),word_length);
+	//_matrix.printMatrix();
 
 	// replace with deque, to avoid need to reverse elements 
+	/*
 	std::vector<typename tree<T>::iterator > dump ;
-	while(!_stack.empty())
+	while(!v_nodes.empty())
 	{
-		LOG_DEBUG(_log) <<"stack dump " << *(_stack.top())<<endl;
-		dump.push_back(_stack.top());
-		_stack.pop();
+		LOG_DEBUG(_log) <<"stack dump " << *(v_nodes.top())<<endl;
+		dump.push_back(v_nodes.top());
+		v_nodes.pop();
 	}
 	std::reverse(dump.begin(), dump.end());
+	*/
 
 	for(auto i = 0; i <_matrix.row() ; i++)
 	{
-		T val = *(dump.at(i));
+		T val = *(v_nodes.at(i));
 		LOG_INFO(_log) <<"val " <<val << endl;
 		for(auto j = 0 ; j < _matrix.col(); j++)
 		{
@@ -737,7 +737,7 @@ template<class T> bool estimate_cost(std::stack<typename tree<T>::iterator > _st
 	{
 		LOG_INFO(_log) << "possible match:" << endl;
 
-		for (auto& it :dump)
+		for (auto& it :v_nodes)
 		{
 			LOG_INFO(_log) << *it<< endl;
 		}
@@ -752,23 +752,27 @@ template<class T> bool estimate_cost(std::stack<typename tree<T>::iterator > _st
 }
 
 /*
-* Version to handle add, erasure of chars  
+* Version to handle add, erasure, substitution of chars  
+* how to, looks for all branches that have length in [ word_length - nb_allowed_erasure , word_length + nb_allowed_add]
+* Handle iterators to find next vertex mix sibling & preorder iterator
+* store vertexes in array or stack and handle visited vertexes
+* post processing is done in  by estimate_cost function
 */
 template<class T>
-bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add, tree<T>& tfound)
+bool tree_search_subs_add_erase(const tree<T>& ref_tree, int word_length, T word[],int nb_allowed_substitute, int nb_allowed_erasure, int nb_allowed_add, tree<T>& tfound)
 {
 	auto status = false;
-	auto done = false;
 
 	typename tree<T>::pre_order_iterator it_depth,last_it_depth;
 	typename tree<T>::iterator parent = nullptr;
+	std::deque<typename tree<T>::iterator > _visited_nodes;
 
 	auto current_depth = 0, last_depth = 0;
 	auto nb_erased = 0, nb_added = 0, nb_matched =0;
-	auto allowed_search_length = word_length + nb_allowed_add + nb_allowed_erasure;
+
+	auto max_search_length = word_length + nb_allowed_add ;//+ nb_allowed_erasure;	
+	auto min_search_length = word_length - nb_allowed_erasure ;//+ nb_allowed_erasure;
 	
-	//std::vector<char> browsed_chars;
-	std::stack<typename tree<T>::iterator > _visited_nodes;
 
 	// preconditions
 	if(nb_allowed_substitute+nb_allowed_erasure>= word_length)
@@ -784,7 +788,7 @@ bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],in
 	while(it_depth != ref_tree.end())
 	{
 
-		_visited_nodes.push(it_depth);
+		_visited_nodes.push_back(it_depth);
 
 		current_depth = ref_tree.depth(it_depth);			
 		LOG_DEBUG(_log) << *it_depth <<", depth :"<<ref_tree.depth(it_depth) <<endl;
@@ -792,7 +796,7 @@ bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],in
 		// reached end of branch
 		if(ref_tree.number_of_children(it_depth) == 0 )
 		{ 
-			if(ref_tree.depth(it_depth) <= (allowed_search_length-1))
+			if(ref_tree.depth(it_depth) <= (max_search_length-1) && ref_tree.depth(it_depth) >= (min_search_length-1))
 			{
 			LOG_DEBUG(_log) << "end of branch and branch depth:" <<ref_tree.depth(it_depth)<<endl;
 			LOG_DEBUG(_log) << "Analysis:" <<endl;	
@@ -800,22 +804,22 @@ bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],in
 			}
 			else
 			{
-				LOG_WARN(_log) << endl << "Never happen" <<endl;	
+				LOG_WARN(_log) << endl << "Not processed because out of targeted length" <<endl;	
 			}
 			last_it_depth =it_depth;
 			it_depth++;
 			// empty not needed last elements
 			for(auto  _id = ref_tree.depth(it_depth);_id <= ref_tree.depth(last_it_depth) ; _id++)
 			{
-				_visited_nodes.pop();
+				_visited_nodes.pop_back();
 			}
 		}
-		else if(ref_tree.depth(it_depth) >= allowed_search_length-1) // word longer than expected
+		else if(ref_tree.depth(it_depth) >= max_search_length-1) // word longer than expected
 		{
-			LOG_INFO(_log) << "allowed length reached :" <<ref_tree.depth(it_depth)<<":"<<allowed_search_length-1 << endl;
+			LOG_INFO(_log) << "allowed length reached :" <<ref_tree.depth(it_depth)<<":"<<max_search_length-1 << endl;
 
-			typename tree<T>::pre_order_iterator current = _visited_nodes.top();
-			 _visited_nodes.pop();
+			typename tree<T>::pre_order_iterator current = _visited_nodes.back();
+			 _visited_nodes.pop_back();
 
 			if(_visited_nodes.empty())
 			{
@@ -825,8 +829,8 @@ bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],in
 			}
 			else
 			{
-				typename tree<T>::pre_order_iterator parent = _visited_nodes.top();
-				_visited_nodes.pop();
+				typename tree<T>::pre_order_iterator parent = _visited_nodes.back();
+				_visited_nodes.pop_back();
 
 
 
@@ -840,29 +844,29 @@ bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],in
 				{
 					if(ref_tree.depth(parent) == 0)
 					{
-						_visited_nodes.pop();
+						_visited_nodes.pop_back();
 						typename tree<T>::sibling_iterator next_root = parent++;
 						it_depth = next_root;		
 						break;
 					}
 					current = parent;
-					parent =_visited_nodes.top();
-					_visited_nodes.pop();
+					parent =_visited_nodes.back();
+					_visited_nodes.pop_back();
 
 					typename tree<T>::sibling_iterator _siblings =current;
 					_siblings++;
 					
 					if(_siblings == ref_tree.end(parent))
 					{
-						LOG_INFO(_log) << "sibling worked" << endl;
+						LOG_DEBUG(_log) << "sibling worked" << endl;
 					}
 					else
 					{
-						LOG_INFO(_log) << "sibling:" << *_siblings << endl;
+						LOG_DEBUG(_log) << "sibling:" << *_siblings << endl;
 					}
 					for(typename tree<T>::sibling_iterator it = ref_tree.begin(parent); it!=ref_tree.end(parent); it++)
 					{
-						LOG_INFO(_log) <<"parent:" << *parent <<  ",it:"  << *it<<" " << endl;
+						LOG_DEBUG(_log) <<"parent:" << *parent <<  ",it:"  << *it<<" " << endl;
 						if(it == _siblings)
 						{	found = true;
 							break;
@@ -871,7 +875,7 @@ bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],in
 				}
 				
 				it_depth = _siblings;			
-				_visited_nodes.push(parent);
+				_visited_nodes.push_back(parent);
 				//_visited_nodes.push(it_depth);		
 			}	
 		}
@@ -882,7 +886,27 @@ bool tree_search_add_erase(const tree<T>& ref_tree, int word_length, T word[],in
 	}
 	LOG_INFO(_log) << _visited_nodes.size() <<endl;
 
+	return true;
+
 }
+
+/*
+ * Helper to print trees
+ */
+void print_tree(const tree<char>& tr, tree<char>::pre_order_iterator it, tree<char>::pre_order_iterator end)
+{
+	if(!tr.is_valid(it)) return;
+	int rootdepth=tr.depth(it);
+	std::cout << "-----" << std::endl;
+	while(it!=end) {
+		for(auto i=0; i<tr.depth(it)-rootdepth; ++i) 
+			std::cout << "  ";
+		std::cout << (*it) << std::endl << std::flush;
+		++it;
+		}
+	std::cout << "-----" << std::endl;
+}
+
 
 } // end namespace recursive_search_insert
 

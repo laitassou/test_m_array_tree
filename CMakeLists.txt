@@ -4,7 +4,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 project(my_design)
 
-set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
 
 set (CMAKE_CXX_STANDARD 14)
 
@@ -30,9 +30,9 @@ include_directories(test_tree_search_substitute PRIVATE ${INC})
 
 
 #search substitute, add , erase
-set(SOURCES_ADD_ERASE app/test_search_add_erase.cpp)
-add_executable(test_tree_search_add_erase ${SOURCES_ADD_ERASE})
-include_directories(test_tree_search_add_erase PRIVATE ${INC})
+set(SOURCES_ADD_ERASE app/test_search_subs_add_erase.cpp)
+add_executable(test_tree_search_subs_add_erase ${SOURCES_ADD_ERASE})
+include_directories(test_tree_search_subs_add_erase PRIVATE ${INC})
 
 
 #performance search, insert, substitute, add , erase
